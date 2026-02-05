@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: newsapi
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:///instance/news.db
+      - key: FETCH_INTERVAL_MINUTES
+        value: 30
+      - key: ANALYZE_INTERVAL_MINUTES
+        value: 15
+      - key: ENABLE_SCHEDULER
+        value: true
+      - key: LLM_ENABLED
+        sync: false  # Set manually in dashboard
+      - key: ANTHROPIC_API_KEY
+        sync: false  # Set manually in dashboard (optional)
+    healthCheckPath: /api/v1/health
+    plan: free

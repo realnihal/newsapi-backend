@@ -1,0 +1,204 @@
+{
+  "feeds": [
+    {
+      "name": "Reuters Top News",
+      "url": "https://feeds.reuters.com/reuters/topNews",
+      "category": "World"
+    },
+    {
+      "name": "AP News",
+      "url": "https://apnews.com/index.rss",
+      "category": "World"
+    },
+    {
+      "name": "NPR News",
+      "url": "https://feeds.npr.org/1001/rss.xml",
+      "category": "US"
+    },
+    {
+      "name": "PBS NewsHour",
+      "url": "https://www.pbs.org/newshour/feeds/rss/headlines",
+      "category": "US"
+    },
+    {
+      "name": "The Hill",
+      "url": "https://thehill.com/feed/",
+      "category": "Politics"
+    },
+    {
+      "name": "BBC World",
+      "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
+      "category": "World"
+    },
+    {
+      "name": "The Guardian World",
+      "url": "https://www.theguardian.com/world/rss",
+      "category": "World"
+    },
+    {
+      "name": "Deutsche Welle",
+      "url": "https://rss.dw.com/rdf/rss-en-all",
+      "category": "Europe"
+    },
+    {
+      "name": "France24",
+      "url": "https://www.france24.com/en/rss",
+      "category": "Europe"
+    },
+    {
+      "name": "Euronews",
+      "url": "https://www.euronews.com/rss",
+      "category": "Europe"
+    },
+    {
+      "name": "Al Jazeera",
+      "url": "https://www.aljazeera.com/xml/rss/all.xml",
+      "category": "World"
+    },
+    {
+      "name": "SCMP",
+      "url": "https://www.scmp.com/rss/91/feed",
+      "category": "Asia"
+    },
+    {
+      "name": "Japan Times",
+      "url": "https://www.japantimes.co.jp/feed/",
+      "category": "Asia"
+    },
+    {
+      "name": "ABC Australia",
+      "url": "https://www.abc.net.au/news/feed/51120/rss.xml",
+      "category": "Asia"
+    },
+    {
+      "name": "Reuters Business",
+      "url": "https://feeds.reuters.com/reuters/businessNews",
+      "category": "Business"
+    },
+    {
+      "name": "TechCrunch",
+      "url": "https://techcrunch.com/feed/",
+      "category": "Technology"
+    },
+    {
+      "name": "Ars Technica",
+      "url": "https://feeds.arstechnica.com/arstechnica/index",
+      "category": "Technology"
+    },
+    {
+      "name": "The Verge",
+      "url": "https://www.theverge.com/rss/index.xml",
+      "category": "Technology"
+    },
+    {
+      "name": "Nature News",
+      "url": "https://www.nature.com/nature.rss",
+      "category": "Science"
+    },
+    {
+      "name": "Phys.org",
+      "url": "https://phys.org/rss-feed/",
+      "category": "Science"
+    },
+    {
+      "name": "CNN",
+      "url": "http://rss.cnn.com/rss/edition.rss",
+      "category": "World"
+    },
+    {
+      "name": "USA Today",
+      "url": "http://rssfeeds.usatoday.com/usatoday-NewsTopStories",
+      "category": "US"
+    },
+    {
+      "name": "ABC News",
+      "url": "https://abcnews.go.com/abcnews/topstories",
+      "category": "US"
+    },
+    {
+      "name": "CBS News",
+      "url": "https://www.cbsnews.com/latest/rss/main",
+      "category": "US"
+    },
+    {
+      "name": "NBC News",
+      "url": "https://feeds.nbcnews.com/nbcnews/public/news",
+      "category": "US"
+    },
+    {
+      "name": "Politico",
+      "url": "https://www.politico.com/rss/politicopicks.xml",
+      "category": "Politics"
+    },
+    {
+      "name": "Axios",
+      "url": "https://api.axios.com/feed/",
+      "category": "Politics"
+    },
+    {
+      "name": "Bloomberg",
+      "url": "https://feeds.bloomberg.com/markets/news.rss",
+      "category": "Business"
+    },
+    {
+      "name": "CNBC",
+      "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+      "category": "Business"
+    },
+    {
+      "name": "MarketWatch",
+      "url": "http://feeds.marketwatch.com/marketwatch/topstories/",
+      "category": "Business"
+    },
+    {
+      "name": "Forbes",
+      "url": "https://www.forbes.com/real-time/feed2/",
+      "category": "Business"
+    },
+    {
+      "name": "Wired",
+      "url": "https://www.wired.com/feed/rss",
+      "category": "Technology"
+    },
+    {
+      "name": "Engadget",
+      "url": "https://www.engadget.com/rss.xml",
+      "category": "Technology"
+    },
+    {
+      "name": "Hacker News",
+      "url": "https://news.ycombinator.com/rss",
+      "category": "Technology"
+    },
+    {
+      "name": "Times of India",
+      "url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+      "category": "Asia"
+    },
+    {
+      "name": "NHK World",
+      "url": "https://www3.nhk.or.jp/rss/news/cat0.xml",
+      "category": "Asia"
+    },
+    {
+      "name": "Sky News",
+      "url": "https://feeds.skynews.com/feeds/rss/world.xml",
+      "category": "Europe"
+    },
+    {
+      "name": "ESPN",
+      "url": "https://www.espn.com/espn/rss/news",
+      "category": "Sports"
+    },
+    {
+      "name": "Scientific American",
+      "url": "http://rss.sciam.com/ScientificAmerican-Global",
+      "category": "Science"
+    },
+    {
+      "name": "New Scientist",
+      "url": "https://www.newscientist.com/feed/home/",
+      "category": "Science"
+    }
+  ]
+}

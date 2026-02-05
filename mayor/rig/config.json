@@ -1,0 +1,10 @@
+{
+  "type": "rig",
+  "version": 1,
+  "name": "NewsAPI",
+  "description": "Flask RSS feed consumer with news storage and dynamic API",
+  "default_branch": "main",
+  "beads": {
+    "prefix": "na"
+  }
+}
