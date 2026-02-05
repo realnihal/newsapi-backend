@@ -1,14 +1,25 @@
 import os
 import re
+from html import unescape
 from collections import Counter
 from datetime import datetime, timedelta
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Set, Tuple, Optional
 import logging
 from app import db
 from app.models.article import Article
 from app.models.topic import Topic, ArticleTopic
 
 logger = logging.getLogger(__name__)
+
+
+def strip_html(text: str) -> str:
+    """Remove HTML tags and decode entities from text."""
+    if not text:
+        return ""
+    text = re.sub(r'<[^>]+>', ' ', text)
+    text = unescape(text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
 
 # Common stop words to filter out
@@ -90,7 +101,7 @@ class TopicAnalyzer:
         all_sentences = []
 
         for article in articles[:5]:  # Use top 5 articles
-            text = article.description or article.title
+            text = strip_html(article.description or article.title)
             # Split into sentences
             sentences = re.split(r'[.!?]+', text)
             for sent in sentences:
@@ -99,10 +110,10 @@ class TopicAnalyzer:
                     all_sentences.append(sent)
 
         if not all_sentences:
-            return articles[0].title if articles else ""
+            return strip_html(articles[0].title) if articles else ""
 
         # Score sentences by keyword frequency
-        all_text = ' '.join([a.title + ' ' + (a.description or '') for a in articles])
+        all_text = ' '.join([strip_html(a.title + ' ' + (a.description or '')) for a in articles])
         keywords = set(TopicAnalyzer.extract_keywords(all_text, 20))
 
         scored = []
@@ -118,13 +129,53 @@ class TopicAnalyzer:
         return '. '.join(top_sentences) + '.' if top_sentences else ""
 
     @staticmethod
+    def generate_topic_title_llm(articles: List[Article]) -> Tuple[str, str]:
+        """Generate title and summary using LLM."""
+        try:
+            from app.services.llm_client import LLMClientFactory
+            if not LLMClientFactory.is_available():
+                return None, None
+
+            client = LLMClientFactory.create()
+
+            # Prepare article info
+            article_info = []
+            for a in articles[:5]:
+                title = strip_html(a.title)
+                desc = strip_html(a.description or '')[:200]
+                article_info.append(f"- {title}: {desc}")
+
+            prompt = f"""Based on these related news articles, generate:
+1. A concise, descriptive topic title (max 10 words, no "Latest Updates" suffix)
+2. A 2-sentence summary of the key story
+
+Articles:
+{chr(10).join(article_info)}
+
+Respond in JSON format:
+{{"title": "Topic Title Here", "summary": "Summary sentence one. Summary sentence two."}}"""
+
+            system = "You are a news editor. Generate clear, informative titles and summaries. Be specific and factual."
+            result = client.complete_json(prompt, system=system, max_tokens=200)
+
+            return result.get('title'), result.get('summary')
+        except Exception as e:
+            logger.error(f"LLM title generation failed: {e}")
+            return None, None
+
+    @staticmethod
     def generate_topic_title(articles: List[Article], keywords: List[str]) -> str:
         """Generate a title for the topic cluster."""
         if not articles:
             return "News Update"
 
-        # Use the most relevant article's title or construct from keywords
-        titles = [a.title for a in articles[:3]]
+        # Try LLM first
+        llm_title, _ = TopicAnalyzer.generate_topic_title_llm(articles)
+        if llm_title:
+            return llm_title
+
+        # Fallback to keyword-based title
+        titles = [strip_html(a.title) for a in articles[:3]]
 
         # Find common significant words in titles
         title_words = []
@@ -136,13 +187,13 @@ class TopicAnalyzer:
         common = Counter(title_words).most_common(3)
         if common:
             topic_subject = ', '.join([w for w, _ in common[:2]])
-            return f"{topic_subject}: Latest Updates"
+            return topic_subject
 
         # Fallback to keywords
         if keywords:
-            return f"{keywords[0].title()}: {keywords[1].title() if len(keywords) > 1 else 'News'}"
+            return f"{keywords[0].title()} {keywords[1].title() if len(keywords) > 1 else ''}"
 
-        return articles[0].title[:100] if articles else "News Update"
+        return strip_html(articles[0].title)[:100] if articles else "News Update"
 
     @staticmethod
     def cluster_articles(hours: int = 24, similarity_threshold: float = 0.25) -> List[Dict]:
@@ -253,21 +304,34 @@ class TopicAnalyzer:
             articles = cluster_data['articles']
             keywords = cluster_data['keywords']
 
-            # Generate topic content
-            title = TopicAnalyzer.generate_topic_title(articles, keywords)
-            summary = TopicAnalyzer.generate_summary(articles)
+            # Try to get LLM-generated title and summary
+            llm_title, llm_summary = TopicAnalyzer.generate_topic_title_llm(articles)
 
-            # Get best thumbnail
+            # Use LLM results or fall back to extractive methods
+            title = llm_title or TopicAnalyzer.generate_topic_title(articles, keywords)
+            summary = llm_summary or TopicAnalyzer.generate_summary(articles)
+
+            # Get best thumbnail - prefer valid image URLs
             thumbnail = None
             for article in articles:
-                if article.thumbnail:
-                    thumbnail = article.thumbnail
-                    break
+                if article.thumbnail and article.thumbnail.startswith(('http://', 'https://')):
+                    # Skip very small images or icons
+                    if 'icon' not in article.thumbnail.lower() and 'logo' not in article.thumbnail.lower():
+                        thumbnail = article.thumbnail
+                        break
+
+            # If no good thumbnail found, try any valid URL
+            if not thumbnail:
+                for article in articles:
+                    if article.thumbnail and article.thumbnail.startswith(('http://', 'https://')):
+                        thumbnail = article.thumbnail
+                        break
 
             # Create topic
             topic = Topic(
                 title=title,
                 summary=summary,
+                llm_summary=llm_summary,
                 keywords=','.join(keywords),
                 thumbnail=thumbnail,
                 article_count=len(articles),

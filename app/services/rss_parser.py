@@ -1,8 +1,22 @@
 import feedparser
 import re
+from html import unescape
 from datetime import datetime
 from time import mktime
 from typing import Optional
+
+
+def strip_html(text: str) -> str:
+    """Remove HTML tags and decode entities from text."""
+    if not text:
+        return ""
+    # Remove HTML tags
+    text = re.sub(r'<[^>]+>', ' ', text)
+    # Decode HTML entities
+    text = unescape(text)
+    # Clean up whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
 
 class RSSParser:
@@ -101,11 +115,19 @@ class RSSParser:
         # Get thumbnail
         thumbnail = RSSParser._extract_thumbnail(entry)
 
+        # Validate thumbnail URL
+        if thumbnail and not thumbnail.startswith(('http://', 'https://')):
+            thumbnail = ''
+
+        # Get and clean description - strip HTML
+        raw_description = entry.get('summary', '') or ''
+        description = strip_html(raw_description)[:1000]
+
         return {
             'guid': guid,
-            'title': entry.get('title', 'Untitled'),
+            'title': strip_html(entry.get('title', 'Untitled')),
             'link': entry.get('link', ''),
-            'description': entry.get('summary', '')[:1000] if entry.get('summary') else '',
+            'description': description,
             'content': content,
             'author': entry.get('author', ''),
             'published_at': published,
