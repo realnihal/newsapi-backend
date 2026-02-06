@@ -16,8 +16,8 @@ def strip_html(text: str) -> str:
     """Remove HTML tags and decode entities from text."""
     if not text:
         return ""
-    text = re.sub(r'<[^>]+>', ' ', text)
     text = unescape(text)
+    text = re.sub(r'<[^>]+>', ' ', text)
     text = re.sub(r'\s+', ' ', text).strip()
     return text
 
