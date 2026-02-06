@@ -146,16 +146,27 @@ class TopicAnalyzer:
                 article_info.append(f"- {title}: {desc}")
 
             prompt = f"""Based on these related news articles, generate:
-1. A concise, descriptive topic title (max 10 words, no "Latest Updates" suffix)
-2. A 2-sentence summary of the key story
+1. A catchy, engaging topic title (max 10 words) that hooks readers
+2. A 2-sentence summary that leads with the most interesting fact
 
 Articles:
 {chr(10).join(article_info)}
 
 Respond in JSON format:
-{{"title": "Topic Title Here", "summary": "Summary sentence one. Summary sentence two."}}"""
+{{"title": "Your Catchy Title Here", "summary": "Lead with the hook. Follow with key details."}}"""
 
-            system = "You are a news editor. Generate clear, informative titles and summaries. Be specific and factual."
+            system = """You are a viral news editor crafting headlines that people can't help but click.
+
+For TITLES:
+- Hook readers with intrigue, surprise, or emotion
+- Be specific and concrete, not vague
+- Use active verbs and vivid language
+- AVOID: "Breaking:", "Latest:", "Update:", "Report:", or any generic news-speak
+- AVOID: Bland phrases like "announces", "reveals", "amid concerns"
+- Good: "Tesla's Secret Factory Churns Out Robots at Midnight"
+- Bad: "Tesla Announces New Robotics Manufacturing Facility"
+
+Be factual but compelling. Make readers curious."""
             result = client.complete_json(prompt, system=system, max_tokens=200)
 
             return result.get('title'), result.get('summary')

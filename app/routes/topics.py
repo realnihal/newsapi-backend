@@ -85,26 +85,146 @@ def refresh_topics():
 
 @topics_bp.route('/top', methods=['GET'])
 def get_top_topics():
-    """Get top topics for homepage display."""
-    limit = min(request.args.get('limit', 10, type=int), 20)
+    """
+    Get top topics for homepage display with smart ranking.
 
-    topics = Topic.query.filter(
+    Ranking algorithm:
+    - Importance (40%): Uses importance_score from LLM analysis
+    - Recency (30%): Boosts stories updated within last 6 hours
+    - Coverage (20%): Based on article_count (normalized)
+    - Category diversity (10%): Bonus for underrepresented categories
+
+    Also enforces:
+    - Hard cap of 10 stories
+    - Max 3 stories per category for variety
+    """
+    from datetime import datetime, timedelta
+
+    TOP_STORIES_LIMIT = 10  # Hard cap
+    MAX_PER_CATEGORY = 3
+
+    # Weight factors
+    WEIGHT_IMPORTANCE = 0.40
+    WEIGHT_RECENCY = 0.30
+    WEIGHT_COVERAGE = 0.20
+    WEIGHT_DIVERSITY = 0.10
+
+    # Keywords that indicate routine/generic news (penalized)
+    ROUTINE_KEYWORDS = {
+        'update', 'report', 'statement', 'announces', 'says',
+        'weekly', 'daily', 'monthly', 'quarterly', 'annual',
+        'routine', 'regular', 'scheduled', 'expected'
+    }
+
+    # Priority categories for rotation
+    PRIORITY_CATEGORIES = ['World', 'Technology', 'Politics', 'Science', 'Business',
+                           'Health', 'Entertainment', 'Sports', 'Environment']
+
+    # Fetch more candidates than needed for filtering
+    candidates = Topic.query.filter(
         Topic.article_count >= 2
     ).order_by(
-        desc(Topic.article_count),
         desc(Topic.updated_at)
-    ).limit(limit).all()
+    ).limit(100).all()
 
+    if not candidates:
+        return jsonify({'topics': [], 'count': 0})
+
+    now = datetime.utcnow()
+    six_hours_ago = now - timedelta(hours=6)
+
+    # Calculate max article_count for normalization
+    max_article_count = max(t.article_count for t in candidates) or 1
+
+    def calculate_score(topic, category_counts):
+        """Calculate interestingness score for a topic."""
+
+        # 1. Importance score (0.0 to 1.0)
+        importance = topic.importance_score if topic.importance_score else 0.5
+
+        # 2. Recency score
+        recency = 0.0
+        if topic.updated_at:
+            if topic.updated_at >= six_hours_ago:
+                # Breaking/recent - full boost
+                hours_old = (now - topic.updated_at).total_seconds() / 3600
+                recency = 1.0 - (hours_old / 6.0)  # Linear decay over 6 hours
+            else:
+                # Older stories get diminishing score
+                hours_old = (now - topic.updated_at).total_seconds() / 3600
+                recency = max(0.0, 0.5 - (hours_old / 48.0))  # Slow decay
+
+        # 3. Coverage score (normalized article count)
+        coverage = min(topic.article_count / max_article_count, 1.0)
+
+        # 4. Category diversity bonus
+        category = topic.category or 'General'
+        current_count = category_counts.get(category, 0)
+        diversity = 1.0 if current_count == 0 else 0.5 if current_count == 1 else 0.0
+
+        # Penalty for routine/generic news
+        penalty = 0.0
+        title_lower = (topic.title or '').lower()
+        keywords_lower = (topic.keywords or '').lower()
+        for routine_word in ROUTINE_KEYWORDS:
+            if routine_word in title_lower or routine_word in keywords_lower:
+                penalty += 0.05
+        penalty = min(penalty, 0.3)  # Cap penalty at 30%
+
+        # Calculate weighted score
+        score = (
+            WEIGHT_IMPORTANCE * importance +
+            WEIGHT_RECENCY * recency +
+            WEIGHT_COVERAGE * coverage +
+            WEIGHT_DIVERSITY * diversity
+        ) * (1.0 - penalty)
+
+        return score
+
+    # Score and select topics with category diversity enforcement
     result = []
-    for topic in topics:
+    category_counts = {}
+
+    # First pass: score all candidates
+    scored_topics = []
+    for topic in candidates:
+        # Initial score without diversity (will recalculate during selection)
+        base_score = calculate_score(topic, {})
+        scored_topics.append((topic, base_score))
+
+    # Sort by base score descending
+    scored_topics.sort(key=lambda x: x[1], reverse=True)
+
+    # Second pass: select with diversity constraints
+    for topic, _ in scored_topics:
+        if len(result) >= TOP_STORIES_LIMIT:
+            break
+
+        category = topic.category or 'General'
+
+        # Enforce max per category
+        if category_counts.get(category, 0) >= MAX_PER_CATEGORY:
+            continue
+
+        # Recalculate score with current diversity state
+        final_score = calculate_score(topic, category_counts)
+
+        # Add to results
         topic_dict = topic.to_dict()
+        topic_dict['ranking_score'] = round(final_score, 3)
+
         # Add source feeds
         sources = set()
         for at in topic.articles.limit(5).all():
             if at.article.feed:
                 sources.add(at.article.feed.name)
         topic_dict['sources'] = list(sources)
+
         result.append(topic_dict)
+        category_counts[category] = category_counts.get(category, 0) + 1
+
+    # Final sort by ranking score
+    result.sort(key=lambda x: x['ranking_score'], reverse=True)
 
     return jsonify({
         'topics': result,

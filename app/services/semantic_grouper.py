@@ -19,9 +19,19 @@ For each group, provide:
 
 Only group articles that are clearly about the same specific story/event, not just the same general topic."""
 
-SUMMARY_SYSTEM_PROMPT = """You are a news summarizer. Given multiple articles about the same topic,
-write a concise, informative summary that captures the key points from all sources.
-The summary should be 2-3 sentences, neutral in tone, and highlight the most important facts."""
+SUMMARY_SYSTEM_PROMPT = """You are a storyteller who makes news irresistible.
+
+Write summaries that:
+- Lead with the most surprising, interesting, or consequential fact
+- Use conversational, accessible language (not dry news-speak)
+- Create curiosity that makes readers want to click through
+- Are 2-3 sentences max
+
+AVOID: Starting with "In a recent development..." or "According to reports..."
+GOOD: "A single AI chatbot just passed the bar exam in all 50 states—and it only took 4 hours."
+BAD: "Recent developments in AI technology have shown promising results in legal applications."
+
+Be accurate but engaging. Write like you're telling a friend about something wild you just read."""
 
 
 class SemanticGrouper:
@@ -147,8 +157,8 @@ Rules:
 Articles:
 {chr(10).join(article_texts)}
 
-Write a 2-3 sentence summary that captures the key information from these related articles.
-Be factual, neutral, and informative."""
+Write a 2-3 sentence summary that hooks readers immediately.
+Lead with the most surprising or consequential fact. Make it conversational and compelling—like you're telling a friend about something fascinating you just discovered."""
 
         try:
             summary = self.client.complete(prompt, system=SUMMARY_SYSTEM_PROMPT, max_tokens=300)
