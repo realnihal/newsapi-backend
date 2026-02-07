@@ -202,13 +202,13 @@ Be factual but compelling. Make readers curious."""
         return "News Update"
 
     @staticmethod
-    def cluster_articles(hours: int = 24, similarity_threshold: float = 0.25) -> List[Dict]:
-        """Cluster recent articles into topics."""
-        # Get recent articles
+    def cluster_articles(hours: int = 24, similarity_threshold: float = 0.25, max_articles: int = 500) -> List[Dict]:
+        """Cluster recent articles into topics using inverted index for speed."""
+        # Get recent articles (cap to avoid O(n^2) blowup)
         since = datetime.utcnow() - timedelta(hours=hours)
         articles = Article.query.filter(
             Article.fetched_at >= since
-        ).order_by(Article.published_at.desc()).all()
+        ).order_by(Article.published_at.desc()).limit(max_articles).all()
 
         if not articles:
             return []
@@ -220,7 +220,17 @@ Be factual but compelling. Make readers curious."""
             keywords = set(TopicAnalyzer.extract_keywords(text, 15))
             article_keywords[article.id] = keywords
 
-        # Cluster articles
+        # Build inverted index: keyword -> set of article IDs
+        keyword_to_articles: Dict[str, Set[int]] = {}
+        for aid, kws in article_keywords.items():
+            for kw in kws:
+                if kw not in keyword_to_articles:
+                    keyword_to_articles[kw] = set()
+                keyword_to_articles[kw].add(aid)
+
+        # For each article, find candidates that share at least one keyword
+        article_by_id = {a.id: a for a in articles}
+
         clusters = []
         clustered_ids = set()
 
@@ -228,25 +238,26 @@ Be factual but compelling. Make readers curious."""
             if article.id in clustered_ids:
                 continue
 
-            # Start new cluster
             cluster = [article]
             cluster_keywords = article_keywords[article.id].copy()
             clustered_ids.add(article.id)
 
-            # Find similar articles
-            for other in articles:
-                if other.id in clustered_ids:
-                    continue
+            # Get candidate articles via inverted index
+            candidate_ids = set()
+            for kw in article_keywords[article.id]:
+                candidate_ids |= keyword_to_articles.get(kw, set())
+            candidate_ids -= clustered_ids
 
+            # Check similarity only for candidates sharing keywords
+            for cid in candidate_ids:
                 similarity = TopicAnalyzer.calculate_similarity(
                     cluster_keywords,
-                    article_keywords[other.id]
+                    article_keywords[cid]
                 )
-
                 if similarity >= similarity_threshold:
-                    cluster.append(other)
-                    cluster_keywords |= article_keywords[other.id]
-                    clustered_ids.add(other.id)
+                    cluster.append(article_by_id[cid])
+                    cluster_keywords |= article_keywords[cid]
+                    clustered_ids.add(cid)
 
             clusters.append({
                 'articles': cluster,
