@@ -101,7 +101,7 @@ def get_top_topics():
     from datetime import datetime, timedelta
 
     TOP_STORIES_LIMIT = 15
-    MAX_PER_CATEGORY = 5
+    MAX_PER_CATEGORY = 15  # Don't limit by category until categories are properly assigned
 
     # Weight factors
     WEIGHT_IMPORTANCE = 0.40
