@@ -100,8 +100,8 @@ def get_top_topics():
     """
     from datetime import datetime, timedelta
 
-    TOP_STORIES_LIMIT = 10  # Hard cap
-    MAX_PER_CATEGORY = 3
+    TOP_STORIES_LIMIT = 15
+    MAX_PER_CATEGORY = 5
 
     # Weight factors
     WEIGHT_IMPORTANCE = 0.40
@@ -122,7 +122,7 @@ def get_top_topics():
 
     # Fetch more candidates than needed for filtering
     candidates = Topic.query.filter(
-        Topic.article_count >= 2
+        Topic.article_count >= 1
     ).order_by(
         desc(Topic.updated_at)
     ).limit(100).all()

@@ -176,7 +176,7 @@ Be factual but compelling. Make readers curious."""
 
     @staticmethod
     def generate_topic_title(articles: List[Article], keywords: List[str]) -> str:
-        """Generate a title for the topic cluster."""
+        """Generate a title for the topic cluster using the lead article's headline."""
         if not articles:
             return "News Update"
 
@@ -185,26 +185,21 @@ Be factual but compelling. Make readers curious."""
         if llm_title:
             return llm_title
 
-        # Fallback to keyword-based title
-        titles = [strip_html(a.title) for a in articles[:3]]
+        # Use the lead article's title — it's the most descriptive option
+        lead_title = strip_html(articles[0].title).strip()
+        if lead_title:
+            # Truncate very long titles at a natural break
+            if len(lead_title) > 80:
+                # Try to cut at a natural boundary
+                for sep in [' - ', ' | ', ': ', ' — ']:
+                    if sep in lead_title[:80]:
+                        lead_title = lead_title[:lead_title.index(sep)]
+                        break
+                else:
+                    lead_title = lead_title[:77].rsplit(' ', 1)[0] + '...'
+            return lead_title
 
-        # Find common significant words in titles
-        title_words = []
-        for title in titles:
-            words = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', title)
-            title_words.extend(words)
-
-        # Get most common proper nouns
-        common = Counter(title_words).most_common(3)
-        if common:
-            topic_subject = ', '.join([w for w, _ in common[:2]])
-            return topic_subject
-
-        # Fallback to keywords
-        if keywords:
-            return f"{keywords[0].title()} {keywords[1].title() if len(keywords) > 1 else ''}"
-
-        return strip_html(articles[0].title)[:100] if articles else "News Update"
+        return "News Update"
 
     @staticmethod
     def cluster_articles(hours: int = 24, similarity_threshold: float = 0.25) -> List[Dict]:
@@ -253,12 +248,10 @@ Be factual but compelling. Make readers curious."""
                     cluster_keywords |= article_keywords[other.id]
                     clustered_ids.add(other.id)
 
-            # Only keep clusters with 2+ articles
-            if len(cluster) >= 2:
-                clusters.append({
-                    'articles': cluster,
-                    'keywords': list(cluster_keywords)[:10]
-                })
+            clusters.append({
+                'articles': cluster,
+                'keywords': list(cluster_keywords)[:10]
+            })
 
         return clusters
 
